@@ -3,10 +3,13 @@ import os
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
+FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 # Save recipe map as image to recipe
 def save_map(recipe_map):
-    with open('recipe-map/recipes.pkl', 'wb') as f:
+    # with open(FILE_DIR + '/recipe-map/recipes.pkl', 'wb') as f:
+    with open(FILE_DIR + '\\recipe-map\\recipes.pkl', 'wb') as f:
         print('Recipe map saved')
         print(recipe_map)
         pickle.dump(recipe_map, f)
@@ -14,21 +17,24 @@ def save_map(recipe_map):
 
 # Load recipe map
 def load_map():
-    with open('recipe-map/recipes.pkl', 'rb') as f:
+    # with open(FILE_DIR + '/recipe-map/recipes.pkl', 'rb') as f:
+    with open(FILE_DIR + '\\recipe-map\\recipes.pkl', 'rb') as f:
         data = pickle.load(f)
         print('Recipe map loaded')
         return data
 
 
 def save_last_recipe(recipe):
-    with open('recipe-map/last_recipe.pkl', 'wb') as f:
+    # with open(FILE_DIR + '/recipe-map/last_recipe.pkl', 'wb') as f:
+    with open(FILE_DIR + '\\recipe-map\\last_recipe.pkl', 'wb') as f:
         print('\nLast recipe saved')
         print(recipe)
         pickle.dump(recipe, f)
 
 
 def load_last_recipe():
-    with open('recipe-map/last_recipe.pkl', 'rb') as f:
+    # with open(FILE_DIR + '/recipe-map/last_recipe.pkl', 'rb') as f:
+    with open(FILE_DIR + '\\recipe-map\\last_recipe.pkl', 'rb') as f:
         data = pickle.load(f)
         print('\nLast recipe loaded')
         print(data)
@@ -77,24 +83,16 @@ def create_mode():
     return
 
 
-# TODO: edit mode for recipe correction
-def edit_mode():
-    pass
+def edit_mode(key, value):
+    recipe_map = load_map()
 
-
-def editor(create, edit):
-    if create:
-        try:
-            create_mode()
-            print('Added new recipes successfully\n\n')
-        except:
-            print('ERROR: Create failed')
-    if edit:
-        try:
-            edit_mode()
-            print('Editted recipes successful\n\n')
-        except:
-            print('ERROR: Edit failed')
+    if key in recipe_map.keys():
+        old_value = recipe_map[key]
+        recipe_map[key] = value
+        save_map(recipe_map)
+        print('Updated: Recipe for ', key, ' changed from ', old_value, ' to ', value)
+    else:
+        print('Key not found in recipe map')
 
 
 # Update recipes based on current images
@@ -151,17 +149,21 @@ def search_recipe(search):
     return result
 
 
-def run(create, edit, remove, clear):
+def run(create, remove, clear):
     if clear:
         clear_recipe()
     if remove:
         remove_recipes()
-    if create or edit:
-        editor(create, edit)
+    if create:
+        try:
+            create_mode()
+            print('Added new recipes successfully\n\n')
+        except:
+            print('ERROR: Create failed')
     return
 
 
 if __name__ == '__main__':
-    run(create=True, edit=False, remove=False, clear=False)
-    # load_map()
+    run(create=True, remove=False, clear=False)
+    # edit_mode('IMG_8685.JPEG', 'christmas steak marinade beef')
     # search_recipe('cookies')

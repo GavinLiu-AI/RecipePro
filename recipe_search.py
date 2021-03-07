@@ -4,6 +4,8 @@ import logging
 from datetime import datetime
 import pickle
 import os
+import wget
+import requests
 
 API_KEY = 'Os4mmoHxVlTDexaoBI6pPltYb'
 API_SECRET = 'PCgtTiGWubdnp1fHyDpPyP3PdopULxsc3i34KMELABPkslYHy3'
@@ -17,8 +19,18 @@ user = api.me()
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
+# Save recipe map as image to recipe
+def save_map(recipe_map):
+    # with open(FILE_DIR + '/recipe-map/recipes.pkl', 'wb') as f:
+    with open(FILE_DIR + '\\recipe-map\\recipes.pkl', 'wb') as f:
+        print('Recipe map saved')
+        print(recipe_map)
+        pickle.dump(recipe_map, f)
+
+
 # Load recipe map
 def load_map():
+    # with open(FILE_DIR + '/recipe-map/recipes.pkl', 'rb') as f:
     with open(FILE_DIR + '\\recipe-map\\recipes.pkl', 'rb') as f:
         data = pickle.load(f)
         print('Recipe map loaded')
@@ -26,6 +38,7 @@ def load_map():
 
 
 def save_last_recipe(recipe):
+    # with open(FILE_DIR + '/recipe-map/last_recipe.pkl', 'wb') as f:
     with open(FILE_DIR + '\\recipe-map\\last_recipe.pkl', 'wb') as f:
         print('\nLast recipe saved')
         print(recipe)
@@ -33,9 +46,27 @@ def save_last_recipe(recipe):
 
 
 def load_last_recipe():
+    # with open(FILE_DIR + '/recipe-map/last_recipe.pkl', 'rb') as f:
     with open(FILE_DIR + '\\recipe-map\\last_recipe.pkl', 'rb') as f:
         data = pickle.load(f)
         print('\nLast recipe loaded')
+        print(data)
+        return data
+
+
+def save_last_upload(recipe):
+    # with open(FILE_DIR + '/recipe-map/last_upload.pkl', 'wb') as f:
+    with open(FILE_DIR + '\\recipe-map\\last_upload.pkl', 'wb') as f:
+        print('\nLast upload saved')
+        print(recipe)
+        pickle.dump(recipe, f)
+
+
+def load_last_upload():
+    # with open(FILE_DIR + '/recipe-map/last_upload.pkl', 'rb') as f:
+    with open(FILE_DIR + '\\recipe-map\\last_upload.pkl', 'rb') as f:
+        data = pickle.load(f)
+        print('\nLast upload loaded')
         print(data)
         return data
 
@@ -76,7 +107,8 @@ def send_recipe():
             # Upload images and get media_ids
             media_ids = []
             for recipe in recipe_group:
-                res = api.media_upload('images/' + str(recipe))
+                # res = api.media_upload(FILE_DIR + '/images/' + str(recipe))
+                res = api.media_upload(FILE_DIR + '\\images\\' + str(recipe))
                 media_ids.append(res.media_id)
 
             # Tweet with multiple images
@@ -94,8 +126,40 @@ def send_recipe():
     else:
         print('\nNo recipes found')
         api.send_direct_message(sender_id, 'Sorry! I could not find recipes for ' + direct_message + '. ' + get_time())
+        time.sleep(5)
 
     save_last_recipe(direct_message)
+    return
+
+
+def upload_recipe():
+    print('Uploading!')
+
+    image_names = []
+    medias = mention.extended_entities['media']
+    for image in medias:
+        image_names.append(image['media_url'])
+
+    recipe_map = load_map()
+
+    # Download to images folder
+    for image in image_names:
+        if image not in recipe_map.keys():
+            # wget.download(image, FILE_DIR + '/images/')
+            wget.download(image, FILE_DIR + '\\test\\')
+            print('\nDownloaded image: ', image)
+
+            # Save to recipe map
+            recipe_map[image] = upload_label
+            print('\nSaved ', image, ': ', upload_label, ' to recipe map')
+
+            api.send_direct_message(mention.author.id_str, 'Recipe for ' + str(upload_label) + ' uploaded. ' + get_time())
+            time.sleep(5)
+        else:
+            print('Download skipped: Image ', image, ' already exists.')
+
+    save_map(recipe_map)
+    save_last_upload(upload_label)
     return
 
 
@@ -104,6 +168,7 @@ while True:
         print('-------------------------------')
         # My own sender_id = '1368266407125733376'
         dms = api.list_direct_messages()
+        time.sleep(5)
         while dms[0].message_create['sender_id'] == '1368266407125733376':
             dms.pop(0)
         direct_message = str(dms[0].message_create['message_data']['text']).lower()
@@ -112,6 +177,14 @@ while True:
 
         # Load last recipe
         last_recipe = load_last_recipe()
+
+        # Upload
+        mention = api.mentions_timeline(count=3)[0]
+        mention_text = mention.text.split(' ')
+        upload_label = []
+        for word in mention_text:
+            if not ('@' in word or 'http' in word):
+                upload_label.append(word.lower())
 
         direct_message = direct_message.split(' ')
         if 'find' == direct_message[0]:
@@ -122,6 +195,14 @@ while True:
                 send_recipe()
             else:
                 print('Search aborted: Recipe already found')
+        if 'upload' == upload_label[0]:
+            upload_label.pop(0)
+            upload_label = ' '.join(upload_label)
+
+            if upload_label != load_last_upload():
+                upload_recipe()
+            else:
+                print('Upload aborted: Recipe already uploaded')
 
         time.sleep(60)
 
