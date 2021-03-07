@@ -3,6 +3,7 @@ import time
 import logging
 from datetime import datetime
 import pickle
+import os
 
 API_KEY = 'Os4mmoHxVlTDexaoBI6pPltYb'
 API_SECRET = 'PCgtTiGWubdnp1fHyDpPyP3PdopULxsc3i34KMELABPkslYHy3'
@@ -13,25 +14,26 @@ auth = tweepy.OAuthHandler(API_KEY, API_SECRET)
 auth.set_access_token(ACCESS_TOKEN, ACCESS_SECRET)
 api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
 user = api.me()
+FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 # Load recipe map
 def load_map():
-    with open('recipe-map/recipes.pkl', 'rb') as f:
+    with open(FILE_DIR + '\\recipe-map\\recipes.pkl', 'rb') as f:
         data = pickle.load(f)
         print('Recipe map loaded')
         return data
 
 
 def save_last_recipe(recipe):
-    with open('recipe-map/last_recipe.pkl', 'wb') as f:
+    with open(FILE_DIR + '\\recipe-map\\last_recipe.pkl', 'wb') as f:
         print('\nLast recipe saved')
         print(recipe)
         pickle.dump(recipe, f)
 
 
 def load_last_recipe():
-    with open('recipe-map/last_recipe.pkl', 'rb') as f:
+    with open(FILE_DIR + '\\recipe-map\\last_recipe.pkl', 'rb') as f:
         data = pickle.load(f)
         print('\nLast recipe loaded')
         print(data)
