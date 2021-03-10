@@ -1,1 +1,3 @@
-# recipe-helper
+# recipePro
+
+twitter.com/therecipepro
