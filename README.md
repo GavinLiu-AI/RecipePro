@@ -1,3 +1,3 @@
-# recipePro
+# RecipePro
 
 twitter.com/therecipepro
