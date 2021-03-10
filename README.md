@@ -1,3 +1,3 @@
 # RecipePro
 
-[twitter.com/therecipepro](twitter.com/therecipepro)
+[twitter.com/therecipepro](https://twitter.com/therecipepro)
