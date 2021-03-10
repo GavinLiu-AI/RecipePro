@@ -24,7 +24,7 @@ def save_map(recipe_map):
     # with open(FILE_DIR + '/recipe-map/recipes.pkl', 'wb') as f:
     with open(FILE_DIR + '\\recipe-map\\recipes.pkl', 'wb') as f:
         print('Recipe map saved')
-        print(recipe_map)
+        # print(recipe_map)
         pickle.dump(recipe_map, f)
 
 
@@ -93,12 +93,13 @@ def get_page(index, total_page):
     return '(' + str(index + 1) + '/' + str(total_page) + ')'
 
 
-def send_recipe():
+def send_recipe(direct_message, sender_id):
     print('\nSearching for: ', direct_message)
 
     result = search_recipe(direct_message)
 
     if result:
+        num_result = str(len(result))
         # Break results into chunks of 4
         result = [result[i:i + 4] for i in range(0, len(result), 4)]
 
@@ -118,10 +119,10 @@ def send_recipe():
                 print('\nAll recipes tweeted. DONE!')
             else:
                 print('\nTweeted some recipes, more to go!')
-            time.sleep(5)
+            time.sleep(3)
 
         api.send_direct_message(sender_id,
-                                'I found the recipes for ' + direct_message + '. Check my tweets! ' + get_time())
+                                'I found ' + num_result + ' recipes for ' + direct_message + '. Check my tweets! ' + get_time())
         print('\nUser notified via DM.')
     else:
         print('\nNo recipes found')
@@ -132,7 +133,7 @@ def send_recipe():
     return
 
 
-def upload_recipe():
+def upload_recipe(mention, upload_text):
     print('Uploading!')
 
     image_names = []
@@ -150,63 +151,83 @@ def upload_recipe():
             print('\nDownloaded image: ', image)
 
             # Save to recipe map
-            recipe_map[image] = upload_label
-            print('\nSaved ', image, ': ', upload_label, ' to recipe map')
+            recipe_map[image.split('/')[-1]] = upload_text
+            print('\nSaved ', image, ': ', upload_text, ' to recipe map')
 
-            api.send_direct_message(mention.author.id_str, 'Recipe for ' + str(upload_label) + ' uploaded. ' + get_time())
+            api.send_direct_message(mention.author.id_str, 'Recipe for ' + str(upload_text) + ' uploaded. ' + get_time())
             time.sleep(5)
         else:
             print('Download skipped: Image ', image, ' already exists.')
 
     save_map(recipe_map)
-    save_last_upload(upload_label)
     return
 
 
-while True:
-    try:
-        print('-------------------------------')
-        # My own sender_id = '1368266407125733376'
-        dms = api.list_direct_messages()
-        time.sleep(5)
-        while dms[0].message_create['sender_id'] == '1368266407125733376':
-            dms.pop(0)
-        direct_message = str(dms[0].message_create['message_data']['text']).lower()
-        print('DM Request: ', direct_message)
-        sender_id = dms[0].message_create['sender_id']
+def run():
+    while True:
+        try:
+            # Search recipe
+            print('-------------------------------')
+            # My own sender_id = '1368266407125733376'
+            dms = api.list_direct_messages()
+            time.sleep(5)
+            while dms[0].message_create['sender_id'] == '1368266407125733376':
+                dms.pop(0)
+            direct_message = str(dms[0].message_create['message_data']['text']).lower()
+            print('DM Request: ', direct_message)
+            sender_id = dms[0].message_create['sender_id']
 
-        # Load last recipe
-        last_recipe = load_last_recipe()
+            last_recipe = load_last_recipe()
 
-        # Upload
-        mention = api.mentions_timeline(count=3)[0]
-        mention_text = mention.text.split(' ')
-        upload_label = []
-        for word in mention_text:
-            if not ('@' in word or 'http' in word):
-                upload_label.append(word.lower())
+            direct_message = direct_message.split(' ')
+            if 'find' == direct_message[0]:
+                direct_message.pop(0)
+                direct_message = ' '.join(direct_message).strip()
 
-        direct_message = direct_message.split(' ')
-        if 'find' == direct_message[0]:
-            direct_message.pop(0)
-            direct_message = ' '.join(direct_message).strip()
+                if last_recipe != direct_message:
+                    send_recipe(direct_message, sender_id)
+                else:
+                    print('Search aborted: Recipe already found')
 
-            if last_recipe != direct_message:
-                send_recipe()
-            else:
-                print('Search aborted: Recipe already found')
-        if 'upload' == upload_label[0]:
-            upload_label.pop(0)
-            upload_label = ' '.join(upload_label)
+            # Upload
+            mentions = api.mentions_timeline(count=20)
+            upload_texts = []
+            upload_mentions = []
+            # Get 5 latest upload
+            for mention in mentions:
+                if len(upload_texts) == 10:
+                    break
 
-            if upload_label != load_last_upload():
-                upload_recipe()
-            else:
-                print('Upload aborted: Recipe already uploaded')
+                mention_text = mention.text.split(' ')
+                upload_label = []
+                for word in mention_text:
+                    if not ('@' in word or 'http' in word):
+                        upload_label.append(word.lower())
+                if 'upload' == upload_label[0]:
+                    upload_label.pop(0)
+                    upload_label = ' '.join(upload_label)
+                    upload_texts.append(upload_label)
+                    upload_mentions.append(mention)
 
-        time.sleep(60)
+            last_upload = load_last_upload()  # Should be a list of 5 uploads
+            new_upload = []
+            for index, upload_text in enumerate(upload_texts):
+                if upload_text not in last_upload:
+                    upload_recipe(upload_mentions[index], upload_text)
+                    new_upload.insert(0, upload_text)
+                else:
+                    print('Upload aborted: Recipes already uploaded')
+                    break
+            new_upload.reverse()
+            new_upload.extend(last_upload)
+            save_last_upload(new_upload[0:5])
+            time.sleep(30)
 
-    except tweepy.RateLimitError as e:
-        logging.error("Twitter api rate limit reached".format(e))
-        time.sleep(60)
-        continue
+        except tweepy.RateLimitError as e:
+            logging.error("Twitter api rate limit reached".format(e))
+            time.sleep(30)
+            continue
+
+
+if __name__ == '__main__':
+    run()
