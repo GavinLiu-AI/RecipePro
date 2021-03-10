@@ -153,13 +153,12 @@ def upload_recipe(mention, upload_text):
             # Save to recipe map
             recipe_map[image.split('/')[-1]] = upload_text
             print('\nSaved ', image, ': ', upload_text, ' to recipe map')
-
-            api.send_direct_message(mention.author.id_str, 'Recipe for ' + str(upload_text) + ' uploaded. ' + get_time())
-            time.sleep(5)
         else:
             print('Download skipped: Image ', image, ' already exists.')
 
     save_map(recipe_map)
+    api.send_direct_message(mention.author.id_str, 'Recipe for ' + str(upload_text) + ' uploaded. ' + get_time())
+    time.sleep(3)
     return
 
 
@@ -169,25 +168,31 @@ def run():
             # Search recipe
             print('-------------------------------')
             # My own sender_id = '1368266407125733376'
-            dms = api.list_direct_messages()
+            dms = api.list_direct_messages(count=100)
             time.sleep(5)
-            while dms[0].message_create['sender_id'] == '1368266407125733376':
-                dms.pop(0)
-            direct_message = str(dms[0].message_create['message_data']['text']).lower()
-            print('DM Request: ', direct_message)
-            sender_id = dms[0].message_create['sender_id']
-
-            last_recipe = load_last_recipe()
-
-            direct_message = direct_message.split(' ')
-            if 'find' == direct_message[0]:
-                direct_message.pop(0)
-                direct_message = ' '.join(direct_message).strip()
-
-                if last_recipe != direct_message:
-                    send_recipe(direct_message, sender_id)
+            while dms:
+                if dms[0].message_create['sender_id'] == '1368266407125733376':
+                    dms.pop(0)
                 else:
-                    print('Search aborted: Recipe already found')
+                    break
+            if dms:
+                direct_message = str(dms[0].message_create['message_data']['text']).lower()
+                print('DM Request: ', direct_message)
+                sender_id = dms[0].message_create['sender_id']
+
+                last_recipe = load_last_recipe()
+
+                direct_message = direct_message.split(' ')
+                if 'find' == direct_message[0]:
+                    direct_message.pop(0)
+                    direct_message = ' '.join(direct_message).strip()
+
+                    if last_recipe != direct_message:
+                        send_recipe(direct_message, sender_id)
+                    else:
+                        print('Search aborted: Recipe already found.')
+            else:
+                print('Search aborted: No search requested recently.')
 
             # Upload
             mentions = api.mentions_timeline(count=20)
@@ -218,9 +223,13 @@ def run():
                 else:
                     print('Upload aborted: Recipes already uploaded')
                     break
-            new_upload.reverse()
-            new_upload.extend(last_upload)
-            save_last_upload(new_upload[0:5])
+
+            if new_upload:
+                new_upload.reverse()
+                new_upload.extend(last_upload)
+                save_last_upload(new_upload[0:5])
+            else:
+                save_last_upload(last_upload)
             time.sleep(30)
 
         except tweepy.RateLimitError as e:
