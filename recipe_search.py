@@ -7,10 +7,10 @@ import os
 import wget
 import requests
 
-API_KEY = 'Os4mmoHxVlTDexaoBI6pPltYb'
-API_SECRET = 'PCgtTiGWubdnp1fHyDpPyP3PdopULxsc3i34KMELABPkslYHy3'
-ACCESS_TOKEN = '1368266407125733376-BIH1qjjXngmnOZwmjQZzfVJLoCizMI'
-ACCESS_SECRET = '2OBxdizhvn5mY0WG3UwlFDWNbQt2G9PUhXKdkUznrRtIM'
+# API_KEY = 
+# API_SECRET = 
+# ACCESS_TOKEN = 
+# ACCESS_SECRET = 
 
 auth = tweepy.OAuthHandler(API_KEY, API_SECRET)
 auth.set_access_token(ACCESS_TOKEN, ACCESS_SECRET)
